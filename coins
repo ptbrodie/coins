@@ -1,0 +1,116 @@
+#!/usr/bin/env python
+
+from datetime import datetime
+import json
+import os
+import sys
+from termcolor import colored
+
+import requests
+
+
+COINFILE = os.path.join(os.getenv("HOME"), ".coins")
+
+def read_coins():
+    if not os.path.exists(COINFILE):
+        return {}
+    with open(COINFILE, 'r') as coinfile:
+        return json.load(coinfile)
+
+
+def write_coins(coins):
+    with open (COINFILE, 'w') as coinfile:
+        return json.dump(coins, coinfile)
+
+
+def check_coin(coin):
+    return True
+
+
+def add(coin):
+    coins = read_coins()
+    coin = coin.upper()
+    if not coin in coins:
+        coins[coin] = datetime.now().isoformat()
+    if not check_coin(coin):
+        print("No coin found for symbol %s" % coin)
+        return False
+    write_coins(coins)
+    return True
+
+
+def remove(coin):
+    coins = read_coins()
+    coin = coin.upper()
+    if coin in coins:
+        del coins[coin]
+    write_coins(coins)
+    return True
+
+
+def list():
+    coins = read_coins()
+    if not coins:
+        print("Not tracking any coins.")
+    for coin in sorted(coins.keys()):
+        print(coin)
+    return True
+
+
+def get(coin):
+    res = get_coin_data()
+    try:
+        target = [t for t in res if t['symbol'].upper() == coin.upper()]
+        print_coin(target[0])
+    except Exception:
+        print("No coin found for symbol %s" % coin)
+
+
+def get_coin_data():
+    url = "https://api.coinmarketcap.com/v1/ticker/?limit=2000"
+    res = requests.get(url)
+    return res.json()
+
+
+def print_coin(coinjson):
+    usdcolor = 'red' if coinjson['percent_change_24h'].startswith('-') else 'green'
+    print ("%10s" % coinjson['name'][:10], "%5s" % coinjson['symbol'], "%12s" % ("(%s%%)" % colored(round(float(coinjson['percent_change_24h']), 1), usdcolor)), colored("%12s" % coinjson['price_btc'], usdcolor), colored("%12s" % "$%s" % round(float(coinjson['price_usd']), 2), usdcolor), "%14s" % coinjson['market_cap_usd'])
+
+
+def run_coins():
+    coins = read_coins()
+    res = get_coin_data()
+    tracked = [cd for cd in res if cd['symbol'] in coins]
+    for t in sorted(tracked, key=lambda x: x['symbol']):
+        print_coin(t)
+
+
+def run_command(command, arg=None):
+    COMMANDS = {
+        'add': add,
+        'remove': remove,
+        'list': list,
+        'get': get
+    }
+    if arg:
+        return COMMANDS[command](arg)
+    return COMMANDS[command]()
+
+
+def help():
+    print("An error occurred.")
+
+
+def print_help_and_exit():
+    help()
+    exit()
+
+
+if len(sys.argv) == 1:
+    run_coins()
+elif len(sys.argv) == 3:
+    run_command(sys.argv[1], sys.argv[2])
+elif len(sys.argv) == 2:
+    run_command(sys.argv[1])
+else:
+    print_help_and_exit()
