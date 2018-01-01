@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='pycoins',
-      version='0.0.6',
+      version='0.1.0',
       description='A little command line tool for tracking cryptocurrency prices.',
       url='http://github.com/ptbrodie/coins',
       author='Patrick Brodie',
