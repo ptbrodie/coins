@@ -8,6 +8,7 @@ setup(name='pycoins',
       author_email='ptbrodie@gmail.com',
       install_requires=[
           'requests==2.18.4',
-          'termcolor==1.1.0'
+          'termcolor==1.1.0',
+          'terminaltables==3.1.0'
       ],
       scripts=['./coins'])

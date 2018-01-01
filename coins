@@ -5,6 +5,7 @@ import json
 import os
 import sys
 from termcolor import colored
+from terminaltables import SingleTable
 
 import requests
 
@@ -59,11 +60,12 @@ def list():
 
 def get(coin):
     res = get_coin_data()
-    try:
-        target = [t for t in res if t['symbol'].upper() == coin.upper()]
-        print_coin(target[0])
-    except Exception:
-        print("No coin found for symbol %s" % coin)
+    target = [t for t in res if t['symbol'].upper() == coin.upper()]
+    if target:
+        print_coin_table(target)
+        return True
+    print("No coin found for symbol %s" % coin)
+    return False
 
 
 def get_coin_data():
@@ -72,17 +74,40 @@ def get_coin_data():
     return res.json()
 
 
-def print_coin(coinjson):
-    usdcolor = 'red' if coinjson['percent_change_24h'].startswith('-') else 'green'
-    print ("%10s" % coinjson['name'][:10], "%5s" % coinjson['symbol'], "%12s" % ("(%s%%)" % colored(round(float(coinjson['percent_change_24h']), 1), usdcolor)), colored("%12s" % coinjson['price_btc'], usdcolor), colored("%12s" % "$%s" % round(float(coinjson['price_usd']), 2), usdcolor), "%14s" % coinjson['market_cap_usd'])
+def format_marketcap(marketcap):
+    ONE_BILLION = 1000000000
+    ONE_MILLION = 1000000
+    marketcap = float(marketcap)
+    if marketcap < ONE_BILLION:
+        return "$%sM" % round(marketcap / ONE_MILLION, 2)
+    return "$%sB" % round(marketcap / ONE_BILLION, 2)
+
+
+def print_coin_table(coinlist):
+    tabledata = []
+    headers = ["", "", "24hr Change", "BTC Price", "USD Price", "Market Cap"]
+    tabledata.append(headers)
+    for coindata in coinlist:
+        usdcolor = 'red' if coindata['percent_change_24h'].startswith('-') else 'green'
+        tabledata.append([
+            coindata['name'],
+            coindata['symbol'],
+            "(%s%%)" % colored(round(float(coindata['percent_change_24h']), 1), usdcolor),
+            colored(coindata['price_btc'], usdcolor),
+            colored("$%s" % round(float(coindata['price_usd']), 2), usdcolor),
+            format_marketcap(coindata['market_cap_usd'])
+        ])
+    table_instance = SingleTable(tabledata, "")
+    table_instance.justify_columns[2] = 'right'
+    print(table_instance.table)
+    print()
 
 
 def run_coins():
     coins = read_coins()
     res = get_coin_data()
     tracked = [cd for cd in res if cd['symbol'] in coins]
-    for t in sorted(tracked, key=lambda x: x['symbol']):
-        print_coin(t)
+    print_coin_table(tracked)
 
 
 def run_command(command, arg=None):
