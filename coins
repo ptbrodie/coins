@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
 from datetime import datetime
+import dateparser
+import csv
 import json
 import os
 import sys
+
+from bs4 import BeautifulSoup
 from termcolor import colored
 from terminaltables import SingleTable
 
@@ -11,6 +15,21 @@ import requests
 
 
 COINFILE = os.path.join(os.getenv("HOME"), ".coins")
+
+
+def to_date(datestring):
+    try:
+        return dateparser.parse(datestring)
+    except:
+        return datestring
+
+
+def to_float(floatstring):
+    try:
+        return float(floatstring)
+    except:
+        return floatstring
+
 
 def read_coins():
     if not os.path.exists(COINFILE):
@@ -20,7 +39,7 @@ def read_coins():
 
 
 def write_coins(coins):
-    with open (COINFILE, 'w') as coinfile:
+    with open(COINFILE, 'w') as coinfile:
         return json.dump(coins, coinfile)
 
 
@@ -65,6 +84,48 @@ def get(coin):
         print_coin_table(target)
         return True
     print("No coin found for symbol %s" % coin)
+    return False
+
+
+def scrape_data(coin):
+    url = "https://coinmarketcap.com/currencies/%s/historical-data/?start=20130428&end=20180104" % coin
+    res = requests.get(url)
+    soup = BeautifulSoup(res.content, 'html.parser')
+    historical = soup.find('div', {'id': 'historical-data'})
+    rows = historical.find_all('tr', {'class': 'text-right'})
+    data = []
+    for row in rows:
+        tds = row.find_all('td')
+        row_data = {}
+        row_data['date'] = to_date(tds[0].get_text()).isoformat()
+        row_data['open'] = to_float(tds[1].get_text())
+        row_data['high'] = to_float(tds[2].get_text())
+        row_data['low'] = to_float(tds[3].get_text())
+        row_data['close'] = to_float(tds[4].get_text())
+        row_data['volume'] = to_float(tds[5].get_text().replace(",", ""))
+        row_data['marketcap'] = to_float(tds[6].get_text().replace(",", ""))
+        data.append(row_data)
+    return data
+
+
+def write_file(hist, coin):
+    headers = hist[0].keys()
+    filename = "%s.csv" % coin
+    with open(filename, 'w') as f:
+        dict_writer = csv.DictWriter(f, headers)
+        dict_writer.writeheader()
+        dict_writer.writerows(hist)
+    print("Saved output to %s." % filename)
+
+
+def history(coin):
+    res = get_coin_data()
+    target = [t for t in res if t['symbol']]
+    if len(target):
+        hist = scrape_data(target[0]['id'])
+        write_file(hist, coin)
+        return True
+    print("No coin found for symbold %s" % coin)
     return False
 
 
@@ -115,7 +176,8 @@ def run_command(command, arg=None):
         'add': add,
         'remove': remove,
         'list': list,
-        'get': get
+        'get': get,
+        'history': history
     }
     if arg:
         return COMMANDS[command](arg)

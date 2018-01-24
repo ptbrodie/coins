@@ -9,6 +9,8 @@ setup(name='pycoins',
       install_requires=[
           'requests==2.18.4',
           'termcolor==1.1.0',
-          'terminaltables==3.1.0'
+          'terminaltables==3.1.0',
+          'beautifulsoup4==4.6.0',
+          'dateparser==0.6.0'
       ],
       scripts=['./coins'])
