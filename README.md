@@ -28,3 +28,7 @@ Get and track cryptocurrency prices right from the command line. Like Satoshi in
 ### List all tracked coins
 
 `coins list`
+
+### Get historical data
+
+`coins history <ticker>`
