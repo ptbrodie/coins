@@ -88,7 +88,8 @@ def get(coin):
 
 
 def scrape_data(coin):
-    url = "https://coinmarketcap.com/currencies/%s/historical-data/?start=20130428&end=20180104" % coin
+    today = datetime.utcnow()
+    url = "https://coinmarketcap.com/currencies/%s/historical-data/?start=20130428&end=%s" % (coin, today.strftime("%Y%m%d"))
     res = requests.get(url)
     soup = BeautifulSoup(res.content, 'html.parser')
     historical = soup.find('div', {'id': 'historical-data'})
