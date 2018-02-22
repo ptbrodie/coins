@@ -121,7 +121,7 @@ def write_file(hist, coin):
 
 def history(coin):
     res = get_coin_data()
-    target = [t for t in res if t['symbol']]
+    target = [t for t in res if t['symbol'].upper() == coin.upper()]
     if len(target):
         hist = scrape_data(target[0]['id'])
         write_file(hist, coin)
